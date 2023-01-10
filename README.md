@@ -6,9 +6,10 @@ limit the number of users who can simultaneously connect to the server for each 
 first install requirments  
 `git`  
 `lnav`  
+`gawk`
 for example in debian or ubuntu  
 ```bash
-apt install git lnav
+apt install git lnav gawk
 ```
 then run this commands
 
@@ -17,6 +18,7 @@ git clone https://github.com/lovelypablo/v2raylimiter
 cd v2raylimiter
 ./install -i
 ```
+use `sudo ./install -i` if you are not root.  
 ## Uninstallation
 to uninstall v2raylimiter you have to just run installation script with "-r" option  
 or from scratch  
@@ -25,6 +27,7 @@ git clone https://github.com/lovelypablo/v2raylimiter
 cd v2raylimiter
 ./install -r
 ```
+use `sudo ./install -r` if you are not root.
 ## Usage
 
 ```bash

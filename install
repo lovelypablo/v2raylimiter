@@ -28,21 +28,15 @@ then
 	echo -e "and for control daemon service"
 	sleep 1
 	echo -e "|	systemctl start v2raylimiter.service		[to start service]				|"
-	sleep 1
 	echo -e "|	systemctl status v2raylimiter.service		[to see status of service]			|"
-	sleep 1
 	echo -e "|	systemctl stop v2raylimiter.service		[to stop service]				|"
-	sleep 1
 	echo -e "|	systemctl restart v2raylimiter.service		[to restart service]				|"
-	sleep 1
 	echo -e "|	systemctl enable v2raylimiter.service		[to starting service with boot]			|"
-	sleep 1
 	echo -e "|	systemctl disable v2raylimiter.service		[to prevent from starting service with boot]	|\n"
-	sleep 1
+	sleep 2
 	echo -e "TO USE LIVE LIST OF PORTS YOU NEED 'lnav' PACKAGE\n\n"
 	sleep 2
 	echo -e "i hope you dont use it for selling vpn!"
-	sleep 1
 	echo -e "just dont do that please"
 elif [[ "$1" == "-r" ]]
 then

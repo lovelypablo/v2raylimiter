@@ -35,7 +35,7 @@ USAGE: v2raylimiter [ -r|--run ] 				run userlimiter
 
 addport()
 {
-	exist=`printf "$configv" | awk '{print $1}' | grep -w $new_port`
+	exist=`printf "$configv" | gawk '{print $1}' | grep -w $new_port`
 	if [[ -z $exist ]]
 	then
 		echo -e "$new_port\t$newlimitrate\tOPEN" >> $config
@@ -47,12 +47,12 @@ addport()
 
 deleteport()
 {
-	exist=`printf "$configv" | awk '{print $1}' | grep -w $dport`
+	exist=`printf "$configv" | gawk '{print $1}' | grep -w $dport`
 	if [[ -z $exist ]]
 	then
 		echo -e "\nthis port doesn't exist in list\n"
 	else
-		linenumber=`printf "$configv" | awk '{print $1}' | grep -n -w $dport | sed 's/:.*$//'`d
+		linenumber=`printf "$configv" | gawk '{print $1}' | grep -n -w $dport | sed 's/:.*$//'`d
 		sed -i "$linenumber" $config
 		echo -e "\nport $dport deleted successfully\n"
 	fi
@@ -62,13 +62,13 @@ deleteport()
 
 changelimit()
 {
-	exist=`printf "$configv" | awk '{print $1}' | grep -w $cport`
+	exist=`printf "$configv" | gawk '{print $1}' | grep -w $cport`
 	if [[ -z $exist ]]
 	then
 		echo -e "\nthis port doesn't exist in list\n"
 	else
-		linenumber=`printf "$configv" | grep -n -w $cport | awk '{print $1}' | sed 's/:.*$//'`
-		awk -i inplace -v var=$cnewlimitrate -v linenumber=$linenumber '{FS=OFS="\t"} NR==linenumber{$2=var;}1' $config
+		linenumber=`printf "$configv" | grep -n -w $cport | gawk '{print $1}' | sed 's/:.*$//'`
+		gawk -i inplace -v var=$cnewlimitrate -v linenumber=$linenumber '{FS=OFS="\t"} NR==linenumber{$2=var;}1' $config
 	fi
 
 }
@@ -86,11 +86,11 @@ listports()
 
 cleariptables()
 {
-	ninputs=`iptables -L INPUT --line-numbers | grep "FOR USERLIMITER" | awk '{print $1}'`
-	chains=`iptables -L | grep Chain | grep USERLIMITER_PORT | awk '{print $2}'`
+	ninputs=`iptables -L INPUT --line-numbers | grep "FOR USERLIMITER" | gawk '{print $1}'`
+	chains=`iptables -L | grep Chain | grep USERLIMITER_PORT | gawk '{print $2}'`
 	for n in $ninputs
 	do
-		nrule=`iptables -L INPUT --line-numbers | grep "FOR USERLIMITER" | awk '{print $1}' | head -n 1`
+		nrule=`iptables -L INPUT --line-numbers | grep "FOR USERLIMITER" | gawk '{print $1}' | head -n 1`
 		iptables -D INPUT $nrule
 	done
 	for c in $chains
@@ -98,7 +98,7 @@ cleariptables()
 		iptables -F $c
 		iptables -X $c
 	done
-	awk -i inplace -v var="OPEN" '{FS=OFS="\t"} {$3=var;}1' $config
+	gawk -i inplace -v var="OPEN" '{FS=OFS="\t"} {$3=var;}1' $config
 	echo "iptable rules and chains deleted."
 }
 
@@ -108,9 +108,9 @@ runuserlimiter()
 	while true
 	do
 		configv=$(<$config)
-		ports=`printf "$configv" | awk '{print $1}'`
+		ports=`printf "$configv" | gawk '{print $1}'`
 		netstatlog=`netstat -atun`
-		iptableports=`iptables -L INPUT --line-numbers | grep "FOR USERLIMITER" | awk '{print $8}' | sed 's/.*://'`
+		iptableports=`iptables -L INPUT --line-numbers | grep "FOR USERLIMITER" | gawk '{print $8}' | sed 's/.*://'`
 		for port in $ports
 		do
 			exist=`printf "$iptableports" | grep -w $port`
@@ -123,10 +123,10 @@ runuserlimiter()
 
 		for port in $ports
 		do
-			linenumber=`printf "$configv" | grep -n -w $port | awk '{print $1}' | sed 's/:.*$//'`
-			limitrate=`printf "$configv" | grep -w $port | awk '{print $2}'`
-			nusers=`printf "$netstatlog" | grep -w $port | grep ESTABLISHED | awk '{print $5}' | sed 's/:.*$//' | sort -u | wc -l`
-			users=`printf "$netstatlog" | grep -w $port | grep ESTABLISHED | awk '{print $5}' | sed 's/:.*$//' | sort -u`
+			linenumber=`printf "$configv" | grep -n -w $port | gawk '{print $1}' | sed 's/:.*$//'`
+			limitrate=`printf "$configv" | grep -w $port | gawk '{print $2}'`
+			nusers=`printf "$netstatlog" | grep -w $port | grep ESTABLISHED | gawk '{print $5}' | sed 's/:.*$//' | sort -u | wc -l`
+			users=`printf "$netstatlog" | grep -w $port | grep ESTABLISHED | gawk '{print $5}' | sed 's/:.*$//' | sort -u`
 			closed_port="closed_$port"
 			if [[ $nusers -gt $((limitrate-1)) && ${!closed_port} -ne 1 ]]
 			then
@@ -136,13 +136,13 @@ runuserlimiter()
 				done
 				iptables -A USERLIMITER_PORT_$port -p tcp --dport $port -j REJECT
 				echo "PORT $port CLOSED"
-				awk -i inplace -v var="CLOSE" -v linenumber=$linenumber '{FS=OFS="\t"} NR==linenumber{$3=var;}1' $config
+				gawk -i inplace -v var="CLOSE" -v linenumber=$linenumber '{FS=OFS="\t"} NR==linenumber{$3=var;}1' $config
 				declare closed_$port=1
 			elif [[ $nusers -lt $limitrate && ${!closed_port} -ne 0 ]] 
 			then
 				iptables -F USERLIMITER_PORT_$port
 				echo "PORT $port OPENED"
-				awk -i inplace -v var="OPEN" -v linenumber=$linenumber '{FS=OFS="\t"} NR==linenumber{$3=var;}1' $config
+				gawk -i inplace -v var="OPEN" -v linenumber=$linenumber '{FS=OFS="\t"} NR==linenumber{$3=var;}1' $config
 				declare closed_$port=0
 			fi
 		done
