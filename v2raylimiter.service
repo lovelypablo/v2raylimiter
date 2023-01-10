@@ -1,0 +1,13 @@
+[Unit]
+Description=v2raylimiter : limit the number of users who can simultaneously connect to the server for each port
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/v2raylimiter -r
+Type=simple
+Restart=always
+
+
+[Install]
+WantedBy=default.target
+RequiredBy=network.target

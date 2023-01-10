@@ -1,0 +1,59 @@
+#!/bin/bash
+
+cat << "EOF"
+        ____                    _ _           _ _            
+ __   _|___ \ _ __ __ _ _   _  | (_)_ __ ___ (_) |_ ___ _ __ 
+ \ \ / / __) | '__/ _` | | | | | | | '_ ` _ \| | __/ _ \ '__|
+  \ V / / __/| | | (_| | |_| | | | | | | | | | | ||  __/ |   
+   \_/ |_____|_|  \__,_|\__, | |_|_|_| |_| |_|_|\__\___|_|   
+                        |___/                                
+
+v2raylimiter : limit the number of users who can simultaneously connect to the server for each port
+
+ATTENTION : PLEASE USE SUDO TO INSTALL IF YOU ARE NOT ROOT.
+
+EOF
+
+if [[ "$1" == "-i" ]]
+then
+	sleep 2
+	echo -e "installing v2raylimiter... \n\n"
+	chmod +x v2raylimiter
+	cp v2raylimiter /usr/bin
+	cp v2raylimiter.service /etc/systemd/system/
+	systemctl daemon-reload
+
+	echo -e "v2raylimiter installed successfully now you can run 'v2raylimiter -h' to see options"
+	sleep 1
+	echo -e "and for control daemon service"
+	sleep 1
+	echo -e "|	systemctl start v2raylimiter.service		[to start service]				|"
+	sleep 1
+	echo -e "|	systemctl status v2raylimiter.service		[to see status of service]			|"
+	sleep 1
+	echo -e "|	systemctl stop v2raylimiter.service		[to stop service]				|"
+	sleep 1
+	echo -e "|	systemctl restart v2raylimiter.service		[to restart service]				|"
+	sleep 1
+	echo -e "|	systemctl enable v2raylimiter.service		[to starting service with boot]			|"
+	sleep 1
+	echo -e "|	systemctl disable v2raylimiter.service		[to prevent from starting service with boot]	|\n"
+	sleep 1
+	echo -e "TO USE LIVE LIST OF PORTS YOU NEED 'lnav' PACKAGE\n\n"
+	sleep 2
+	echo -e "i hope you dont use it for selling vpn!"
+	sleep 1
+	echo -e "just dont do that please"
+elif [[ "$1" == "-r" ]]
+then
+	echo -e "uninstalling v2raylimiter...\n\n"
+	systemctl disable --now v2raylimiter
+	rm /usr/bin/v2raylimiter
+	rm -rf /etc/v2raylimiter
+	rm /etc/systemd/system/v2raylimiter.service
+	systemctl daemon-reload
+	sleep 3
+	echo -e "v2raylimiter uninstalled successfully"
+else
+	echo -e "please use one of -i or -r options\n|	-i		install v2raylimiter	|\n|	-r		remove v2raylimiter	|"
+fi

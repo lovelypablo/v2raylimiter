@@ -1,0 +1,227 @@
+#!/bin/bash
+
+config="/etc/v2raylimiter/config"
+
+if [[ ! -e "$config" ]] 
+then
+	mkdir /etc/v2raylimiter
+	touch $config
+fi
+configv=$(<$config)
+
+usage()
+{
+	cat << "EOF"
+        ____                    _ _           _ _            
+ __   _|___ \ _ __ __ _ _   _  | (_)_ __ ___ (_) |_ ___ _ __ 
+ \ \ / / __) | '__/ _` | | | | | | | '_ ` _ \| | __/ _ \ '__|
+  \ V / / __/| | | (_| | |_| | | | | | | | | | | ||  __/ |   
+   \_/ |_____|_|  \__,_|\__, | |_|_|_| |_| |_|_|\__\___|_|   
+                        |___/                                
+
+EOF
+	echo -e "\nlimit the number of users who can simultaneously connect to the server for each port\n
+USAGE: v2raylimiter [ -r|--run ] 				run userlimiter
+		    [ -c|--clear-iptables ] 			clear iptable rules created by userlimiter
+		    [ -h|--help ] 				show this help page
+		    [ -l|--list-ports ]				show list of ports and their info
+		    [ -L|--live-list-ports ]			show live list of ports and their info
+		    [ -a|--add-port PORT:LIMITRATE ]		add new port with format PORT:LIMITRATE
+		    [ -d|--delete-port PORT ]			delete an existing port from list
+		    [ -n|--change-limitrate PORT:LIMITRATE ]	change limitrate of a port with format PORT:LIMITRATE
+
+		    ATTENTION : use sudo if you are not root"
+}
+
+addport()
+{
+	exist=`printf "$configv" | awk '{print $1}' | grep -w $new_port`
+	if [[ -z $exist ]]
+	then
+		echo -e "$new_port\t$newlimitrate\tOPEN" >> $config
+		echo -e "\nport $new_port with limitrate $newlimitrate added to list successfully\n"
+	else
+		echo -e "\nthis port is already in list, for change limit rate use -n and for delete use -d\n"
+	fi
+}
+
+deleteport()
+{
+	exist=`printf "$configv" | awk '{print $1}' | grep -w $dport`
+	if [[ -z $exist ]]
+	then
+		echo -e "\nthis port doesn't exist in list\n"
+	else
+		linenumber=`printf "$configv" | awk '{print $1}' | grep -n -w $dport | sed 's/:.*$//'`d
+		sed -i "$linenumber" $config
+		echo -e "\nport $dport deleted successfully\n"
+	fi
+
+
+}
+
+changelimit()
+{
+	exist=`printf "$configv" | awk '{print $1}' | grep -w $cport`
+	if [[ -z $exist ]]
+	then
+		echo -e "\nthis port doesn't exist in list\n"
+	else
+		linenumber=`printf "$configv" | grep -n -w $cport | awk '{print $1}' | sed 's/:.*$//'`
+		awk -i inplace -v var=$cnewlimitrate -v linenumber=$linenumber '{FS=OFS="\t"} NR==linenumber{$2=var;}1' $config
+	fi
+
+}
+listports()
+{
+	if [[ $livelist -eq 1 ]]
+	then
+		lnav "$config"
+	else
+		echo -e "\nPORT	LIMIT	STATUS"
+		echo "+-+-+-+-+-+-+-+-+-+-+-+"
+		echo -e "$configv"
+	fi
+}
+
+cleariptables()
+{
+	ninputs=`iptables -L INPUT --line-numbers | grep "FOR USERLIMITER" | awk '{print $1}'`
+	chains=`iptables -L | grep Chain | grep USERLIMITER_PORT | awk '{print $2}'`
+	for n in $ninputs
+	do
+		nrule=`iptables -L INPUT --line-numbers | grep "FOR USERLIMITER" | awk '{print $1}' | head -n 1`
+		iptables -D INPUT $nrule
+	done
+	for c in $chains
+	do
+		iptables -F $c
+		iptables -X $c
+	done
+	awk -i inplace -v var="OPEN" '{FS=OFS="\t"} {$3=var;}1' $config
+	echo "iptable rules and chains deleted."
+}
+
+runuserlimiter()
+{
+	cleariptables
+	while true
+	do
+		configv=$(<$config)
+		ports=`printf "$configv" | awk '{print $1}'`
+		netstatlog=`netstat -atun`
+		iptableports=`iptables -L INPUT --line-numbers | grep "FOR USERLIMITER" | awk '{print $8}' | sed 's/.*://'`
+		for port in $ports
+		do
+			exist=`printf "$iptableports" | grep -w $port`
+			if [ -z $exist ]
+			then
+				iptables -N USERLIMITER_PORT_$port
+				iptables -A INPUT -p tcp --dport $port -j USERLIMITER_PORT_$port -m comment --comment "FOR USERLIMITER"
+			fi
+		done
+
+		for port in $ports
+		do
+			linenumber=`printf "$configv" | grep -n -w $port | awk '{print $1}' | sed 's/:.*$//'`
+			limitrate=`printf "$configv" | grep -w $port | awk '{print $2}'`
+			nusers=`printf "$netstatlog" | grep -w $port | grep ESTABLISHED | awk '{print $5}' | sed 's/:.*$//' | sort -u | wc -l`
+			users=`printf "$netstatlog" | grep -w $port | grep ESTABLISHED | awk '{print $5}' | sed 's/:.*$//' | sort -u`
+			closed_port="closed_$port"
+			if [[ $nusers -gt $((limitrate-1)) && ${!closed_port} -ne 1 ]]
+			then
+				for user in $users
+				do
+					iptables -A USERLIMITER_PORT_$port -p tcp --dport $port -s $user -j ACCEPT
+				done
+				iptables -A USERLIMITER_PORT_$port -p tcp --dport $port -j REJECT
+				echo "PORT $port CLOSED"
+				awk -i inplace -v var="CLOSE" -v linenumber=$linenumber '{FS=OFS="\t"} NR==linenumber{$3=var;}1' $config
+				declare closed_$port=1
+			elif [[ $nusers -lt $limitrate && ${!closed_port} -ne 0 ]] 
+			then
+				iptables -F USERLIMITER_PORT_$port
+				echo "PORT $port OPENED"
+				awk -i inplace -v var="OPEN" -v linenumber=$linenumber '{FS=OFS="\t"} NR==linenumber{$3=var;}1' $config
+				declare closed_$port=0
+			fi
+		done
+		sleep 2
+	done
+}
+
+options=$(getopt -q -o rchlLa:d:n: --long run,clear-iptables,help,list-ports,live-list-ports,add-port:,delete-port:,change-limitrate: -- "$@")
+[[ $? -eq 0 ]] || { 
+	echo -e "\nINCORRECT OPTIONS PROVIDED\n"
+	usage
+	exit 1
+}
+eval set -- "$options"
+while true
+do
+	case "$1" in
+	-r|--run)
+		runuserlimiter
+		;;
+	-c|--clear-iptables)
+		cleariptables
+		;;
+	-h|--help)
+		usage
+		exit 1
+		;;
+	-l|--list-ports)
+		listports
+		exit 1
+		;;
+	-L|--live-list-ports)
+		if $(lnav -V > /dev/null)
+		then
+			livelist=1
+			listports
+			exit 1
+		else
+			echo -e "\nplease install 'lnav' package for live list feature.\n"
+			exit 1
+		fi
+		;;
+	-a|--add-port)
+		shift;
+		if [[ "$1" =~ ^[0-9]+:[0-9]+$ ]]
+		then
+			new_port=`printf "$1" | sed 's/:.*$//'`
+			newlimitrate=`printf "$1" | sed 's/^.*://'`
+			addport
+		else
+			echo -e "\nincorrect format entered! correct format = PORT:LIMITRATE and only digits\n"
+		fi
+		;;
+	-d|--delete-port)
+		shift;
+		if [[ "$1" =~ ^[0-9]+$ ]]
+		then
+			dport=$1
+			deleteport
+		else
+			echo -e "\nincorrect format entered! correct format = PORT and only digits\n"
+		fi
+		;;
+	-n|--change-limitrate)
+		shift;
+                if [[ "$1" =~ ^[0-9]+:[0-9]+$ ]]
+                then
+                        cport=`printf "$1" | sed 's/:.*$//'`
+                        cnewlimitrate=`printf "$1" | sed 's/^.*://'`
+                        changelimit
+                else
+                        echo -e "\nincorrect format entered! correct format = PORT:LIMITRATE and only digits\n"
+                fi
+                ;;
+
+	--)
+		shift
+		break
+		;;
+	esac
+	shift
+done
