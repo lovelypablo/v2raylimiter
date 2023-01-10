@@ -6,7 +6,7 @@ limit the number of users who can simultaneously connect to the server for each 
 first install requirments  
 `git`  
 `lnav`  
-`gawk`
+`gawk`  
 for example in debian or ubuntu  
 ```bash
 apt install git lnav gawk
