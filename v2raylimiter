@@ -125,8 +125,8 @@ runuserlimiter()
 		do
 			linenumber=`printf "$configv" | grep -n -w $port | gawk '{print $1}' | sed 's/:.*$//'`
 			limitrate=`printf "$configv" | grep -w $port | gawk '{print $2}'`
-			nusers=`printf "$netstatlog" | grep -w $port | grep ESTABLISHED | gawk '{print $5}' | sed 's/:.*$//' | sort -u | wc -l`
-			users=`printf "$netstatlog" | grep -w $port | grep ESTABLISHED | gawk '{print $5}' | sed 's/:.*$//' | sort -u`
+			nusers=`printf "$netstatlog" | grep -w $port | grep ESTABLISHED | gawk '{print $5}' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' | sed 's/:.*$//' | sort -u | wc -l`
+			users=`printf "$netstatlog" | grep -w $port | grep ESTABLISHED | gawk '{print $5}' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+'  | sed 's/:.*$//' | sort -u`
 			closed_port="closed_$port"
 			if [[ $nusers -gt $((limitrate-1)) && ${!closed_port} -ne 1 ]]
 			then
