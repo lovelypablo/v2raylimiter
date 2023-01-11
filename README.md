@@ -1,7 +1,9 @@
 # v2raylimiter
 
-limit the number of users who can simultaneously connect to the server for each port
+limit the number of users who can simultaneously connect to the server for each port  
 
+ATTENTION 1 : as i tested in some android clients like v2rayng , sagernet .. you have to close app after disconnecting to fully disconnect from server or your ip still be established in netstat! (its weird)  
+ATTENTION 2 : the script maybe has some bugs with famous http and https ports like "443,80", its recommended to use random ports for best performance.  
 ## Installation
 first install requirments  
 `git`  
