@@ -105,6 +105,7 @@ cleariptables()
 runuserlimiter()
 {
 	cleariptables
+	httphttpsports=":80$|:8080$|:8880$|:2052$|:2082$|:2086$|:2095$|:443$|:2053$|:2083$|:2087$|:2096$|:8443$"
 	while true
 	do
 		configv=$(<$config)
@@ -125,8 +126,8 @@ runuserlimiter()
 		do
 			linenumber=`printf "$configv" | grep -n -w $port | gawk '{print $1}' | sed 's/:.*$//'`
 			limitrate=`printf "$configv" | grep -w $port | gawk '{print $2}'`
-			nusers=`printf "$netstatlog" | grep -w $port | grep ESTABLISHED | gawk '{print $5}' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' | sed 's/:.*$//' | sort -u | wc -l`
-			users=`printf "$netstatlog" | grep -w $port | grep ESTABLISHED | gawk '{print $5}' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+'  | sed 's/:.*$//' | sort -u`
+			nusers=`printf "$netstatlog" | grep -w $port | grep ESTABLISHED | gawk '{print $5}' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' | grep -Ev "$httphttpsports" | sed 's/:.*$//' | sort -u | wc -l`
+			users=`printf "$netstatlog" | grep -w $port | grep ESTABLISHED | gawk '{print $5}' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+'  | grep -Ev "$httphttpsports" | sed 's/:.*$//' | sort -u`
 			closed_port="closed_$port"
 			if [[ $nusers -gt $((limitrate-1)) && ${!closed_port} -ne 1 ]]
 			then
