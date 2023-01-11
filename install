@@ -10,7 +10,7 @@ cat << "EOF"
 
 v2raylimiter : limit the number of users who can simultaneously connect to the server for each port
 
-ATTENTION : PLEASE USE SUDO TO INSTALL IF YOU ARE NOT ROOT.
+ATTENTION : PLEASE USE SUDO TO INSTALL OR UNINSTALL IF YOU ARE NOT ROOT.
 
 EOF
 
